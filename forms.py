@@ -45,3 +45,43 @@ class LoginForm(FlaskForm):
         'Password',
         validators=[InputRequired(), Length(min=6, max=50)],
     )
+
+
+class UpdateUserForm(FlaskForm):
+    """ Update user form """
+
+    email = StringField(
+        'E-mail',
+        validators=[Email(), Length(max=50)], #TODO:// make required so they can't put an empty string
+    )
+
+    username = StringField(
+        'Username',
+        validators=[Length(max=30)], #TODO:// make required so they can't put an empty string
+    )
+
+    #TODO:// Optional validator in front, make sure defaults are working (route?)
+    image_url = StringField(
+        'Image URL (optional)',
+        validators=[URL(), Length(max=255)]
+    )
+    #TODO:// Optional validator in front, make sure defaults are working (route?)
+    header_image_url = StringField(
+        'Image URL (optional)',
+        validators=[URL(), Length(max=255)]
+    )
+
+    bio = TextAreaField(
+        'Bio',
+    )
+
+    # not sure if this is working as intended
+    password = PasswordField(
+        'Password',
+        validators=[Length(min=6, max=50)] #TODO:// make required
+    )
+
+
+
+class CSRFProtectForm(FlaskForm):
+    """ Form just for CSRF Protection """

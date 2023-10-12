@@ -17,7 +17,8 @@ DEFAULT_HEADER_IMAGE_URL = (
     "rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=for" +
     "mat&fit=crop&w=2070&q=80")
 
-
+# https://i.imgur.com/QLwf0Rd.jpeg
+# https://i.imgur.com/vst4Sjn.jpeg
 # Composite primary keys form a unique ordered pair
 class Follow(db.Model):
     """Connection of a follower <-> followed_user."""
@@ -159,6 +160,7 @@ class User(db.Model):
         found_user_list = [
             user for user in self.following if user == other_user]
         return len(found_user_list) == 1
+
 
 
 class Message(db.Model):
