@@ -52,33 +52,32 @@ class UpdateUserForm(FlaskForm):
 
     email = StringField(
         'E-mail',
-        validators=[Email(), Length(max=50)], #TODO:// make required so they can't put an empty string
+        validators=[InputRequired(), Email(), Length(max=50)]
     )
 
     username = StringField(
         'Username',
-        validators=[Length(max=30)], #TODO:// make required so they can't put an empty string
+        validators=[InputRequired(), Length(max=30)]
     )
 
-    #TODO:// Optional validator in front, make sure defaults are working (route?)
+
     image_url = StringField(
         'Image URL (optional)',
-        validators=[URL(), Length(max=255)]
+        validators=[Optional(), URL(), Length(max=255)]
     )
-    #TODO:// Optional validator in front, make sure defaults are working (route?)
+
     header_image_url = StringField(
         'Image URL (optional)',
-        validators=[URL(), Length(max=255)]
+        validators=[Optional(), URL(), Length(max=255)]
     )
 
     bio = TextAreaField(
         'Bio',
     )
 
-    # not sure if this is working as intended
     password = PasswordField(
         'Password',
-        validators=[Length(min=6, max=50)] #TODO:// make required
+        validators=[InputRequired(), Length(min=6, max=50)]
     )
 
 

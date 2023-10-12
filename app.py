@@ -7,9 +7,8 @@ from werkzeug.exceptions import Unauthorized
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, CSRFProtectForm, UpdateUserForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, DEFAULT_HEADER_IMAGE_URL, DEFAULT_IMAGE_URL
 
-#TODO:// import default image urls
 
 load_dotenv()
 
@@ -43,6 +42,7 @@ def add_user_to_g():
 
 
 @app.before_request
+# so is this
 def add_CSRF_form():
     """ add CSRF form once here instead of everywhere for safety """
 
@@ -128,10 +128,11 @@ def logout():
 
     form = g.csrf_form
 
-    if form.validate_on_submit(): #TODO:// also correct user 'and g.user' do unauthorized first
-        do_logout()
-        flash('You have successfully logged out')
+    if not g.user and not form.validate_on_submit():
+        raise Unauthorized()
 
+    do_logout()
+    flash('You have successfully logged out')
 
     return redirect('/login')
 
@@ -147,7 +148,7 @@ def list_users():
     """
 
     if not g.user:
-        raise Unauthorized() #added
+        raise Unauthorized()
 
     search = request.args.get('q')
 
@@ -164,7 +165,7 @@ def show_user(user_id):
     """Show user profile."""
 
     if not g.user:
-        raise Unauthorized() #added
+        raise Unauthorized()
 
     user = User.query.get_or_404(user_id)
 
@@ -176,7 +177,7 @@ def show_following(user_id):
     """Show list of people this user is following."""
 
     if not g.user:
-        raise Unauthorized() #added
+        raise Unauthorized()
 
     user = User.query.get_or_404(user_id)
 
@@ -188,7 +189,7 @@ def show_followers(user_id):
     """Show list of followers of this user."""
 
     if not g.user:
-        raise Unauthorized() #added
+        raise Unauthorized()
 
     user = User.query.get_or_404(user_id)
 
@@ -203,17 +204,18 @@ def start_following(follow_id):
     """
 
     if not g.user:
-        raise Unauthorized() #added
+        raise Unauthorized()
 
-    # form = g.csrf_form
+    # my comment was unclear here, do we need this form here?
+    form = g.csrf_form
 
-    # if form.validate_on_submit(): #added
+    if form.validate_on_submit():
 
-    followed_user = User.query.get_or_404(follow_id)
-    g.user.following.append(followed_user)
-    db.session.commit()
+        followed_user = User.query.get_or_404(follow_id)
+        g.user.following.append(followed_user)
+        db.session.commit()
 
-    return redirect(f"/users/{g.user.id}/following")
+        return redirect(f"/users/{g.user.id}/following")
 
 
 @app.post('/users/stop-following/<int:follow_id>')
@@ -224,11 +226,11 @@ def stop_following(follow_id):
     """
 
     if not g.user:
-        raise Unauthorized() #added
+        raise Unauthorized()
 
     form = g.csrf_form
 
-    if form.validate_on_submit(): #added
+    if form.validate_on_submit():
 
         followed_user = User.query.get_or_404(follow_id)
         g.user.following.remove(followed_user)
@@ -241,31 +243,28 @@ def stop_following(follow_id):
 def profile():
     """Update profile for current user."""
 
-    # IMPLEMENT THIS
     if not g.user:
-        raise Unauthorized() #added
+        raise Unauthorized()
 
     form = UpdateUserForm(obj=g.user)
 
-    #TODO:// make sure password is correct before edit takes hold
     if form.validate_on_submit():
-        # also make sure user is user by calling User.authenticate(g.user.username, form.password.data)
-        # use truthiness
-        # else flash wrong password error
 
-        # can I access the current user like this? yay
+        if User.authenticate(g.user.username, form.password.data):
 
-        # TODO:// don't need ors because of obj=g.user
-        g.user.email = form.email.data or g.user.email
-        g.user.username = form.username.data or g.user.username
-        g.user.image_url = form.image_url.data or g.user.image_url
-        g.user.header_image_url = form.header_image_url.data or g.user.header_image_url
-        # do need or for images URL
-        g.user.bio = form.bio.data or g.user.bio
+            g.user.email = form.email.data
+            g.user.username = form.username.data
+            g.user.image_url = form.image_url.data or DEFAULT_IMAGE_URL
+            g.user.header_image_url = form.header_image_url.data or DEFAULT_HEADER_IMAGE_URL
+            g.user.bio = form.bio.data
 
-        db.session.commit()
+            db.session.commit()
 
-        return redirect(f'/users/{g.user.id}')
+            return redirect(f'/users/{g.user.id}')
+
+        else:
+            form.password.errors = ['Incorrect password']
+
 
     return render_template(f'users/edit.html', user=g.user, form=form)
 
@@ -277,24 +276,24 @@ def delete_user():
 
     Redirect to signup page.
     """
-    #TODO:// unbreak this
-    # TypeError: FlaskForm.validate_on_submit() missing 1 required positional argument: 'self'
-
-    # TODO:// combine 284 with 289 (not)
-    if not g.user:
-        raise Unauthorized() #added
 
     form = g.csrf_form
 
-    if form.validate_on_submit(): #added
+    if not g.user and not form.validate_on_submit():
+        raise Unauthorized()
 
-        do_logout()
+    do_logout()
 
-        db.session.delete(g.user) # :(
-        db.session.commit()
+    user = User.query.get_or_404(g.user.id)
 
-        return redirect("/signup")
+    for message in user.messages:
+        db.session.delete(message)
 
+
+    db.session.delete(g.user)
+    db.session.commit()
+
+    return redirect("/signup")
 
 
 ##############################################################################
@@ -335,6 +334,20 @@ def show_message(message_id):
     return render_template('messages/show.html', message=msg)
 
 
+
+@app.post('/messages/<int:message_id>/like')
+def toggle_message_like(message_id):
+    """ Handle liking or unliking a message """
+
+    if not g.user:
+        raise Unauthorized()
+
+    # toggle bi-heart to bi-heart-fill
+    # how to update icon class without js?
+
+
+
+
 @app.post('/messages/<int:message_id>/delete')
 def delete_message(message_id):
     """Delete a message.
@@ -368,15 +381,12 @@ def homepage():
 
     if g.user:
 
-        following_ids = [user.id for user in g.user.following] # + [g.user.id]
-        following_ids.append(g.user.id) # is there a better way to do this? yay
+        following_ids = [user.id for user in g.user.following] + [g.user.id]
 
         messages = (Message
                     .query
-                    # TODO:// move filter before order
+                    .filter(Message.user_id.in_(following_ids))
                     .order_by(Message.timestamp.desc())
-                    # g.user.following is a list of User objects, not ids
-                    .filter(Message.user_id.in_(following_ids)) # can I use .filter? yay
                     .limit(100)
                     .all())
 
