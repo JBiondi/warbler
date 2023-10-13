@@ -41,7 +41,9 @@
           </li>
           <li class="stat">
             <p class="small">Likes</p>
-            <h4>TBD</h4>
+            <a href="/users/{{ user.id }}/likes">
+              <h4>{{ user.liked_messages | length}}</h4>
+            </a>
           </li>
 
           <li class="ms-auto">
@@ -56,13 +58,17 @@
             </form>
             {% elif g.user %}
             {% if g.user.is_following(user) %}
+
             <form method="POST"
                   action="/users/stop-following/{{ user.id }}">
-              <button class="btn btn-primary">Unfollow</button>
+                  {{g.csrf_form.hidden_tag()}}
+              <button class="btn btn-primary">Unfollow !!</button>
             </form>
             {% else %}
+
             <form method="POST" action="/users/follow/{{ user.id }}">
-              <button class="btn btn-outline-primary">Follow</button>
+              {{g.csrf_form.hidden_tag()}}
+              <button class="btn btn-outline-primary">Follow !!</button>
             </form>
             {% endif %}
             {% endif %}

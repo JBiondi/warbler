@@ -168,6 +168,7 @@ def show_user(user_id):
         raise Unauthorized()
 
     user = User.query.get_or_404(user_id)
+    print("WE ARE ENTERING THE USER ID ROUTE")
 
     return render_template('users/show.html', user=user)
 
@@ -196,6 +197,18 @@ def show_followers(user_id):
     return render_template('users/followers.html', user=user)
 
 
+@app.get('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    """ Show a list of messages liked by this user """
+
+    if not g.user:
+        raise Unauthorized()
+
+    user = User.query.get_or_404(user_id)
+
+    return render_template('users/likes.html', user=user)
+
+
 @app.post('/users/follow/<int:follow_id>')
 def start_following(follow_id):
     """Add a follow for the currently-logged-in user.
@@ -203,19 +216,18 @@ def start_following(follow_id):
     Redirect to following page for the current for the current user.
     """
 
-    if not g.user:
-        raise Unauthorized()
-
-    # my comment was unclear here, do we need this form here?
     form = g.csrf_form
 
-    if form.validate_on_submit():
+    if not g.user or not form.validate_on_submit():
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
-        followed_user = User.query.get_or_404(follow_id)
-        g.user.following.append(followed_user)
-        db.session.commit()
 
-        return redirect(f"/users/{g.user.id}/following")
+    followed_user = User.query.get_or_404(follow_id)
+    g.user.following.append(followed_user)
+    db.session.commit()
+
+    return redirect(f"/users/{g.user.id}/following")
 
 
 @app.post('/users/stop-following/<int:follow_id>')
@@ -225,18 +237,18 @@ def stop_following(follow_id):
     Redirect to following page for the current for the current user.
     """
 
-    if not g.user:
-        raise Unauthorized()
-
     form = g.csrf_form
 
-    if form.validate_on_submit():
+    if not g.user or not form.validate_on_submit():
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
-        followed_user = User.query.get_or_404(follow_id)
-        g.user.following.remove(followed_user)
-        db.session.commit()
 
-        return redirect(f"/users/{g.user.id}/following")
+    followed_user = User.query.get_or_404(follow_id)
+    g.user.following.remove(followed_user)
+    db.session.commit()
+
+    return redirect(f"/users/{g.user.id}/following")
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
@@ -339,11 +351,27 @@ def show_message(message_id):
 def toggle_message_like(message_id):
     """ Handle liking or unliking a message """
 
-    if not g.user:
+    form = g.csrf_form
+
+    came_from = request.form['came_from']
+
+    if not g.user and not form.validate_on_submit():
         raise Unauthorized()
 
-    # toggle bi-heart to bi-heart-fill
-    # how to update icon class without js?
+    message = Message.query.get_or_404(message_id)
+
+    if message.user_id == g.user.id:
+        return redirect(came_from)
+
+    if message in g.user.liked_messages:
+        g.user.liked_messages.remove(message)
+
+    else:
+        g.user.liked_messages.append(message)
+
+    db.session.commit()
+
+    return redirect(came_from) #TODO:// redirect to previous url using request.url
 
 
 
@@ -356,7 +384,9 @@ def delete_message(message_id):
     Redirect to user page on success.
     """
 
-    if not g.user:
+    form = g.csrf_form
+
+    if not g.user or not form.validate_on_submit():
         flash("Access unauthorized.", "danger")
         return redirect("/")
 

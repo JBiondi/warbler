@@ -92,6 +92,8 @@ class User(db.Model):
 
     messages = db.relationship('Message', backref="user")
 
+    liked_messages = db.relationship('Message', secondary='likes')
+
     # user.followers - who are my followers?
     # user.following - who am I following?
     # self referrential
@@ -200,3 +202,23 @@ def connect_db(app):
     app.app_context().push()
     db.app = app
     db.init_app(app)
+
+
+# TODO:// add FKs not nullable
+class Like(db.Model):
+    """ Data model for through table
+        to facilitate User having a list of liked Messages """
+
+    __tablename__ = 'likes'
+
+    message_id = db.Column(
+        db.Integer,
+        db.ForeignKey('messages.id'),
+        primary_key=True
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        primary_key=True
+    )
