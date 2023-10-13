@@ -34,8 +34,13 @@ db.create_all()
 class MessageModelTestCase(TestCase):
     def setUp(self):
         Message.query.delete()
+        User.query.delete()
 
-        # if messages are normally created in a form, how will we create them here?
+        m_user = User.signup("u5", "u5@email.com", "password", None)
+        m_user2 = User.signup("u6", "u6@email.com", "password", None)
+
+        db.session.commit()
+
         m1 = Message(
             text="This is test message text with the number 1 in it"
         )
@@ -44,12 +49,18 @@ class MessageModelTestCase(TestCase):
             text="Different test message text with the number 2 in it"
         )
 
-        # messages need a user, append messages to user
+        m_user.messages.append(m1)
+        m_user2.messages.append(m2)
+
 
         db.session.commit()
 
         self.m1_id = m1.id
         self.m2_id = m2.id
+
+        self.m_user_id = m_user.id
+        self.m_user2_id = m_user2.id
+
 
 
     def tearDown(self):
@@ -61,6 +72,31 @@ class MessageModelTestCase(TestCase):
 
         m1 = Message.query.get(self.m1_id)
 
-        # m1 is None :(
-        # not creating Message instances properly
         self.assertIsInstance(m1, Message)
+
+
+    def test_add_message_to_user_messages(self):
+        ''' test adding a Message to a User's list of messages '''
+
+        m_user = User.query.get(self.m1_id)
+
+        m3 = Message(
+            text='Brand new message'
+        )
+
+        m_user.messages.append(m3)
+
+        self.assertIn(m3, m_user.messages)
+
+
+    def test_remove_message_from_user_messages(self):
+        ''' test removing a Message from a User's list of messages'''
+
+        m_user = User.query.get(self.m1_id)
+
+        message = Message.query.get(self.m1_id)
+
+        m_user.messages.remove(message)
+
+        self.assertNotIn(message, m_user.messages)
+

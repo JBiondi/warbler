@@ -10,6 +10,8 @@
 import os
 from unittest import TestCase
 
+from sqlalchemy.exc import IntegrityError
+
 from models import db, User, Message, Follow
 
 # BEFORE we import our app, let's set an environmental variable
@@ -81,41 +83,45 @@ class UserModelTestCase(TestCase):
         self.assertEqual(u1.is_followed_by(u2), False)
 
 
-    def test_user_signup(self):
-        ''' test cases for the User signup method '''
+    def test_valid_user_signup(self):
+        ''' test success cases for the User signup method '''
 
         u3 = User.signup("u3", "u3@email.com", "password", None)
 
         self.assertIsInstance(u3, User)
         self.assertEqual(u3.username, 'u3')
         self.assertEqual(u3.email, 'u3@email.com')
-        # could check that password not equal password b/c it's hashed now $2b$
+        # check that password not equal password b/c it's hashed now
         self.assertNotEqual(u3.password, 'password')
-
-        # u4 = User.signup("u3", "u4@gamil.com", "password", None)
-        # causes error, how to test for that without crashing app?
-
-    # def test_invalid_signup(self):
-    # # Assert that user signup raises an integrity error when we make a user
-    # # with the same username
-
-    #     with self.assertRaises(IntegrityError):
-    #         User.signup("u1", "u1@email.com", "password", None)
-    #         db.session.commit()
-
-        # all_users = User.query.all()
-        # self.assertNotIn(u4, all_users)
+        # could also do a check that it starts with $2b$ which all bcrypt hashes should start with
 
 
-    def test_user_authenticate(self):
-        ''' test cases for the User authenticate method '''
+    def test_invalid_signup(self):
+        ''' test cases that should not result in successful user sign up'''
+
+        with self.assertRaises(IntegrityError):
+            User.signup("u1", "u1@email.com", "password", None)
+
+            db.session.commit()
+
+
+
+    def test_valid_user_authenticate(self):
+        ''' test cases for successful paths re User authenticate method '''
 
         u1 = User.query.get(self.u1_id)
 
-        # how to test if it's the correct user though?
         self.assertIsInstance(u1.authenticate('u1', 'password'), User)
-        # does authenticated_user = u1.authenticate
 
-        # TODO: break into separate tests
+        authenticated_user = u1.authenticate('u1', 'password')
+        self.assertIs(u1, authenticated_user)
+
+
+
+    def test_invalid_user_authenticate(self):
+        ''' test cases that should not be successful re User authenticate '''
+
+        u1 = User.query.get(self.u1_id)
+
         self.assertEqual(u1.authenticate('wrong username', 'password'), False)
         self.assertEqual(u1.authenticate('u1', 'wrong password'), False)
