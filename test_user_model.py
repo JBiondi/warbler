@@ -3,6 +3,8 @@
 # run these tests like:
 #
 #    python -m unittest test_user_model.py
+#
+# or FLASK_DEBUG=False python3 -m unittest test_user_model.py
 
 
 import os
@@ -44,8 +46,76 @@ class UserModelTestCase(TestCase):
         db.session.rollback()
 
     def test_user_model(self):
+        ''' provided test that tests the user setup '''
         u1 = User.query.get(self.u1_id)
 
         # User should have no messages & no followers
         self.assertEqual(len(u1.messages), 0)
         self.assertEqual(len(u1.followers), 0)
+
+
+    def test_user_is_following(self):
+        ''' test cases for the is_following method '''
+
+        u1 = User.query.get(self.u1_id)
+        u2 = User.query.get(self.u2_id)
+
+        u2.followers.append(u1)
+
+        self.assertEqual(u1.is_following(u2), True)
+
+        u2.followers.remove(u1)
+        self.assertEqual(u1.is_following(u2), False)
+
+
+    def test_user_is_followed_by(self):
+        ''' test cases for the User is_followed_by method '''
+
+        u1 = User.query.get(self.u1_id)
+        u2 = User.query.get(self.u2_id)
+
+        u1.followers.append(u2)
+        self.assertEqual(u1.is_followed_by(u2), True)
+
+        u1.followers.remove(u2)
+        self.assertEqual(u1.is_followed_by(u2), False)
+
+
+    def test_user_signup(self):
+        ''' test cases for the User signup method '''
+
+        u3 = User.signup("u3", "u3@email.com", "password", None)
+
+        self.assertIsInstance(u3, User)
+        self.assertEqual(u3.username, 'u3')
+        self.assertEqual(u3.email, 'u3@email.com')
+        # could check that password not equal password b/c it's hashed now $2b$
+        self.assertNotEqual(u3.password, 'password')
+
+        # u4 = User.signup("u3", "u4@gamil.com", "password", None)
+        # causes error, how to test for that without crashing app?
+
+    # def test_invalid_signup(self):
+    # # Assert that user signup raises an integrity error when we make a user
+    # # with the same username
+
+    #     with self.assertRaises(IntegrityError):
+    #         User.signup("u1", "u1@email.com", "password", None)
+    #         db.session.commit()
+
+        # all_users = User.query.all()
+        # self.assertNotIn(u4, all_users)
+
+
+    def test_user_authenticate(self):
+        ''' test cases for the User authenticate method '''
+
+        u1 = User.query.get(self.u1_id)
+
+        # how to test if it's the correct user though?
+        self.assertIsInstance(u1.authenticate('u1', 'password'), User)
+        # does authenticated_user = u1.authenticate
+
+        # TODO: break into separate tests
+        self.assertEqual(u1.authenticate('wrong username', 'password'), False)
+        self.assertEqual(u1.authenticate('u1', 'wrong password'), False)
