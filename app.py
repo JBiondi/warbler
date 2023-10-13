@@ -371,7 +371,7 @@ def toggle_message_like(message_id):
 
     db.session.commit()
 
-    return redirect(came_from) #TODO:// redirect to previous url using request.url
+    return redirect(came_from)
 
 
 

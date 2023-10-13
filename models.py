@@ -204,7 +204,7 @@ def connect_db(app):
     db.init_app(app)
 
 
-# TODO:// add FKs not nullable
+
 class Like(db.Model):
     """ Data model for through table
         to facilitate User having a list of liked Messages """
@@ -214,11 +214,13 @@ class Like(db.Model):
     message_id = db.Column(
         db.Integer,
         db.ForeignKey('messages.id'),
-        primary_key=True
+        primary_key=True,
+        nullable=False
     )
 
     user_id = db.Column(
         db.Integer,
         db.ForeignKey('users.id'),
-        primary_key=True
+        primary_key=True,
+        nullable=False
     )
